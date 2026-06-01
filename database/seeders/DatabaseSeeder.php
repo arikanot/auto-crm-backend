@@ -40,5 +40,8 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password'),
             'role' => 'mechanic',
         ]);
+
+        $this->call(ClientAndCarSeeder::class);
     }
+
 }
