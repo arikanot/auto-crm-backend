@@ -29,7 +29,11 @@ class CarController extends Controller
             'phone' => 'required|string|unique:clients,phone',
             'email' => 'nullable|email|max:255',
             'comment' => 'nullable|string',
-        ])
+        ]);
+
+        $client = Client::create($validated);
+
+        return response()->json($client, 21);
     }
 
     /**

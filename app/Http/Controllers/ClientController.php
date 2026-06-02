@@ -12,7 +12,9 @@ class ClientController extends Controller
      */
     public function index()
     {
-        //
+       return response()->json(
+            Client::with('cars')->get()
+        );
     }
 
     /**
