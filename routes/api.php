@@ -15,7 +15,8 @@ Route::middleware(['web'])->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
 
-       Route::middleware('auth:sanctum')->get('/clients', [ClientController::class, 'index']);
+       Route::get('/clients', [ClientController::class, 'index']);
+       Route::post('/clients', [ClientController::class, 'store']);
     });
 
 });
