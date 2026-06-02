@@ -6,17 +6,35 @@ use App\Models\Client;
 use App\Models\Car;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Builder;
 
 class ClientController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-       return response()->json(
-            Client::with('cars')->get()
-        );
+        $search = $request->query('search');
+
+        $query = Client::with('cars');
+
+        if (!empty($search)) {
+        $query->where(function (Builder $q) use ($search) {
+            $q->where('name', 'LIKE', "%{$search}%")
+              ->orWhere('phone', 'LIKE', "%{$search}%")
+              ->orWhere('email', 'LIKE', "%{$search}%")
+              // Ищем внутри связанной таблицы машин
+              ->orWhereHas('cars', function (Builder $carQuery) use ($search) {
+                  $carQuery->where('brand', 'LIKE', "%{$search}%")
+                           ->where('model', 'LIKE', "%{$search}%")
+                           ->orWhere('number_plate', 'LIKE', "%{$search}%");
+              });
+        });
+    }
+
+       $query->latest();
+       return response()->json($query->paginate(15));
     }
 
     /**
