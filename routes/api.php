@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\RepairController;
 use Illuminate\Support\Facades\Route;
 
 // Оборачиваем ВСЕ роуты в группу 'web', чтобы включить сессии и куки
@@ -17,6 +18,8 @@ Route::middleware(['web'])->group(function () {
 
        Route::get('/clients', [ClientController::class, 'index']);
        Route::post('/clients', [ClientController::class, 'store']);
+       Route::get('/clients/{id}', [ClientController::class, 'show']);
+       Route::post('/repairs', [RepairController::class, 'store']);
     });
 
 });
