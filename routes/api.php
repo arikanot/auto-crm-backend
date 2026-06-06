@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\RepairController;
+use App\Http\Controllers\CarController;
 use Illuminate\Support\Facades\Route;
 
 // Оборачиваем ВСЕ роуты в группу 'web', чтобы включить сессии и куки
@@ -23,6 +24,9 @@ Route::middleware(['web'])->group(function () {
        Route::get('/repairs', [RepairController::class, 'index']);
        Route::post('/repairs', [RepairController::class, 'store']);
        Route::patch('/repairs/{id}/status', [RepairController::class, 'updateStatus']);
+
+
+       Route::post('/cars', [CarController::class, 'store']);
     });
 
 });

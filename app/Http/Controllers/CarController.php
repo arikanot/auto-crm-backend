@@ -25,15 +25,29 @@ class CarController extends Controller
     public function store(Request $request) : JsonResponse
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|unique:clients,phone',
-            'email' => 'nullable|email|max:255',
-            'comment' => 'nullable|string',
+            'client_id' => 'required|exists:clients,id', // Проверяем, что владелец существует
+            'brand' => 'required|string|max:100',
+            'model' => 'required|string|max:100',
+            'number_plate' => 'nullable|string|max:20',
+            'vin' => 'nullable|string|max:17',
+            'year' => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
+        ], [
+            'brand.required' => 'Марка автомобиля обязательна.',
+            'model.required' => 'Модель автомобиля обязательна.',
         ]);
 
-        $client = Client::create($validated);
+        // 2. Создаем запись в таблице cars
+        $car = Car::create([
+            'client_id' => $validated['client_id'],
+            'brand' => $validated['brand'],
+            'model' => $validated['model'],
+            'number_plate' => !empty($validated['number_plate']) ? mb_strtoupper($validated['number_plate']) : null, // Переводим госномер в верхний регистр
+            'vin' => !empty($validated['vin']) ? mb_strtoupper($validated['vin']) : null,
+            'year' => $validated['year'] ?? null,
+        ]);
 
-        return response()->json($client, 21);
+        // 3. Возвращаем созданное авто с кодом 201
+        return response()->json($car, 201);
     }
 
     /**
