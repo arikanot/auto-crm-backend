@@ -5,9 +5,46 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Repair;
 use App\Models\Car;
+use Illuminate\Database\Eloquent\Builder;
 
 class RepairController extends Controller
 {
+
+    public function index(Request $request)
+    {
+        $status = $request->query('status');
+        $search = $request->query('search');
+
+        $query = Repair::with(['car.client']);
+
+        if (!empty($status)) {
+            $query->where('status', $status);
+        }
+
+        if (!empty($search)) {
+            $query->where(function (Builder $q) use ($search) {
+                $q->where('description', 'LIKE', "%{$search}%")
+                  ->orWhere('notes', 'LIKE', "%{$search}%")
+                  // Ищем по марке/модели машины внутри связи
+                  ->orWhereHas('car', function (Builder $carQ) use ($search) {
+                      $carQ->where('brand', 'LIKE', "%{$search}%")
+                           ->orWhere('model', 'LIKE', "%{$search}%")
+                           ->orWhere('number_plate', 'LIKE', "%{$search}%")
+                           // Ищем по имени клиента внутри машины
+                           ->orWhereHas('client', function (Builder $clientQ) use ($search) {
+                               $clientQ->where('name', 'LIKE', "%{$search}%")
+                                       ->orWhere('phone', 'LIKE', "%{$search}%");
+                           });
+                  });
+            });
+        }
+        $query->latest();
+
+        return response()->json($query->paginate(15));
+    }
+
+
+
     public function store(Request $request)
     {
        $validated = $request->validate([

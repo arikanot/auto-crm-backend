@@ -19,6 +19,8 @@ Route::middleware(['web'])->group(function () {
        Route::get('/clients', [ClientController::class, 'index']);
        Route::post('/clients', [ClientController::class, 'store']);
        Route::get('/clients/{id}', [ClientController::class, 'show']);
+
+       Route::get('/repairs', [RepairController::class, 'index']);
        Route::post('/repairs', [RepairController::class, 'store']);
     });
 
