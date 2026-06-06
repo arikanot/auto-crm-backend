@@ -70,4 +70,23 @@ class RepairController extends Controller
 
         return response()->json($repair, 201);
     }
+
+    public function updateStatus(Request $request, string $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:pending,in_progress,waiting_parts,completed',
+        ]);
+
+        $repair = Repair::find($id);
+
+        if (!$repair) {
+            return response()->json(['message' => 'Заказ не найден'], 404);
+        }
+
+        $repair->status = $validated['status'];
+        $repair->save();
+
+        return response()->json($repair->load('car.client'));
+
+    }
 }

@@ -22,6 +22,7 @@ Route::middleware(['web'])->group(function () {
 
        Route::get('/repairs', [RepairController::class, 'index']);
        Route::post('/repairs', [RepairController::class, 'store']);
+       Route::patch('/repairs/{id}/status', [RepairController::class, 'updateStatus']);
     });
 
 });
