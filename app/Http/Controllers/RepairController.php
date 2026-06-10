@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Repair;
 use App\Models\Car;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\Part;
+use Illuminate\Support\Facades\DB;
 
 class RepairController extends Controller
 {
@@ -45,31 +47,72 @@ class RepairController extends Controller
 
 
 
-    public function store(Request $request)
-    {
-       $validated = $request->validate([
-            'car_id' => 'required|exists:cars,id', // Проверяем, что машина реально существует
-            'description' => 'required|string|max:255',
-            'status' => 'required|in:pending,in_progress,waiting_parts,completed',
-            'labor_cost' => 'nullable|numeric|min:0',
-            'parts_cost' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
-        ], [
-            'description.required' => 'Описание поломки или работ обязательно.',
-        ]);
+   public function store(Request $request)
+{
+    // 1. Валидируем входящие данные
+    $validated = $request->validate([
+        'car_id' => 'required|exists:cars,id',
+        'description' => 'required|string|max:255',
+        'labor_cost' => 'required|numeric|min:0',
+        'notes' => 'nullable|string',
+        'status' => 'required|in:pending,in_progress,waiting_parts,completed',
+        // Запчасти передаются в виде массива: [['id' => 1, 'quantity' => 2], ...]
+        'parts' => 'nullable|array',
+        'parts.*.id' => 'required|exists:parts,id',
+        'parts.*.quantity' => 'required|integer|min:1',
+    ]);
 
-        // 2. Создаем запись в таблице repairs
+    // 2. Обернем всё в транзакцию базы данных (если склад не обновится, то и ремонт не создастся)
+    return DB::transaction(function () use ($validated) {
+
+        $partsCost = 0;
+        $partsToAttach = [];
+
+        // 3. Проверяем остатки на складе и рассчитываем общую стоимость запчастей
+        if (!empty($validated['parts'])) {
+            foreach ($validated['parts'] as $item) {
+                $part = Part::find($item['id']);
+
+                // Проверяем, хватает ли деталей на складе
+                if ($part->stock_quantity < $item['quantity']) {
+                    return response()->json([
+                        'message' => "Недостаточно товара на складе: {$part->name}. Остаток: {$part->stock_quantity} шт."
+                    ], 422);
+                }
+
+                // Уменьшаем остаток на складе
+                $part->stock_quantity -= $item['quantity'];
+                $part->save();
+
+                // Считаем стоимость для клиента
+                $partsCost += $part->selling_price * $item['quantity'];
+
+                // Формируем массив для связи во многие-ко-многим
+                $partsToAttach[$part->id] = [
+                    'quantity' => $item['quantity'],
+                    'price_at_sale' => $part->selling_price
+                ];
+            }
+        }
+
+        // 4. Создаем заказ-наряд
         $repair = Repair::create([
             'car_id' => $validated['car_id'],
             'description' => $validated['description'],
             'status' => $validated['status'],
-            'labor_cost' => $validated['labor_cost'] ?? 0,
-            'parts_cost' => $validated['parts_cost'] ?? 0,
+            'labor_cost' => $validated['labor_cost'],
+            'parts_cost' => $partsCost, // Стоимость запчастей рассчиталась автоматически!
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        return response()->json($repair, 201);
-    }
+        // 5. Привязываем запчасти к ремонту в pivot-таблицу
+        if (!empty($partsToAttach)) {
+            $repair->parts()->attach($partsToAttach);
+        }
+
+        return response()->json($repair->load('car.client', 'parts'), 201);
+    });
+}
 
     public function updateStatus(Request $request, string $id)
     {

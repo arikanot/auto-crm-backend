@@ -17,4 +17,11 @@ class Repair extends Model
     {
         return $this->belongsTo(Car::class);
     }
+
+    public function parts()
+    {
+        return $this->belongsToMany(Part::class, 'part_repair')
+                    ->withPivot('quantity', 'price_at_sale')
+                    ->withTimestamps();
+    }
 }

@@ -82,7 +82,7 @@ class ClientController extends Controller
      */
     public function show(string $id)
     {
-        $client = Client::find($id);
+        $client = Client::with(['cars.repairs.parts'])->find($id);
 
         if (!$client) {
             return response()->json(['message' => 'Клиент с ID ' . $id . ' не найден в базе'], 404);
