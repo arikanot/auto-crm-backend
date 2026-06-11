@@ -12,7 +12,7 @@ class Repair extends Model
     use HasFactory;
 
     protected $fillable = ['car_id', 'description', 'status', 'labor_cost', 'parts_cost', 'notes'];
-
+    protected $with = ['parts'];
     public function car()
     {
         return $this->belongsTo(Car::class);
